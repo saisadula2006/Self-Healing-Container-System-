@@ -1,0 +1,34 @@
+
+services:
+  web:
+    build:
+      context: ./app
+    image: self-healing-web:1.0
+    container_name: self-healing-web
+    ports:
+      - "8082:80"
+    labels:
+      self-healing: "true"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1/ || exit 1
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+  healer:
+    build:
+      context: ./healer
+    image: self-healing-monitor:1.0
+    container_name: self-healing-monitor
+    environment:
+      TARGET_LABEL: "self-healing=true"
+      CHECK_INTERVAL: "5"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - web
+    restart: unless-stopped
